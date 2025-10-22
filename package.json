@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node src/index.js"
+    "start": "nodemon --inspect src/index.js"
   },
   "keywords": [],
   "author": "",
@@ -12,6 +11,7 @@
   "description": "",
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
     "http-errors": "^2.0.0",
@@ -20,5 +20,10 @@
     "morgan": "^1.10.1",
     "oracledb": "^6.9.0",
     "winston": "^3.17.0"
+  },
+  "devDependencies": {
+    "chai": "^4.3.8",
+    "mocha": "^10.2.0",
+    "nodemon": "^3.1.10"
   }
 }

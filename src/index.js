@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const morgan = require("morgan");
+const cors = require("cors");
 const createError = require("http-errors");
 const routes = require("./routes");
 const errorHandler = require("./middlewares/error");
@@ -16,19 +17,41 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const corsOriginEnv = process.env.CORS_ORIGIN || "";
+let corsOptions = {};
+if (corsOriginEnv) {
+  const origins = corsOriginEnv
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  corsOptions = {
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (origins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+  };
+} else if (process.env.NODE_ENV === "development") {
+  corsOptions = { origin: true };
+} else {
+  corsOptions = { origin: false };
+}
+
+app.use(cors(corsOptions));
+
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 
-// Routes
 app.use("/api/v1", routes);
 
-// 404 Handler
 app.use((req, res, next) => {
   next(createError(404, "Not Found"));
 });
 
-// Error Handler
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;

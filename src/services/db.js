@@ -6,9 +6,7 @@ const logger = require("../utils/logger");
 async function initialize() {
   try {
     const configDir = process.env.TNS_ADMIN;
-    console.log("configDir", configDir);
     const libDir = process.env["HOME"] + "/instantclient";
-    console.log("libDir", libDir);
     oracledb.autoCommit = true;
     oracledb.initOracleClient({
       libDir,
@@ -46,6 +44,7 @@ async function simpleExecute(statement, binds = [], opts = {}) {
   opts.outFormat = oracledb.OUT_FORMAT_OBJECT;
 
   try {
+    console.log({ statement, binds });
     logger.info("Executing SQL", { statement, binds });
     connection = await oracledb.getConnection();
     result = await connection.execute(statement, binds, opts);

@@ -1,10 +1,9 @@
-
-const Joi = require('joi');
+const Joi = require("joi");
 
 const createTenantSchema = Joi.object({
-    name: Joi.string().required()
+  name: Joi.string().optional(),
 });
 
 module.exports = {
-    createTenantSchema
+  createTenantSchema,
 };
