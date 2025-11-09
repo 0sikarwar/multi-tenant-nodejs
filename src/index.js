@@ -13,7 +13,6 @@ process.env.TNS_ADMIN = path.resolve(process.env.WALLET_LOCATION || "./wallet");
 
 const app = express();
 
-// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

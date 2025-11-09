@@ -88,10 +88,14 @@ const getUserWithAddresses = async (userId) => {
   return { ...user, addresses };
 };
 
-const getUsersByTenant = async (tenant_id) => {
-  const result = await db.simpleExecute("SELECT user_id, email, name FROM users WHERE tenant_id = :tenant_id", {
-    tenant_id,
-  });
+const getUsersByTenant = async (tenant_id, isAdmin) => {
+  let query = "SELECT * FROM users WHERE tenant_id = :tenant_id";
+  let binds = { tenant_id };
+  if (isAdmin) {
+    query = "SELECT * FROM users";
+    binds = {};
+  }
+  const result = await db.simpleExecute(query, binds);
   return result.rows;
 };
 

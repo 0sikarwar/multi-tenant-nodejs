@@ -33,7 +33,7 @@ const login = async (req, res, next) => {
 
 const refreshToken = async (req, res, next) => {
   try {
-    const { refreshToken } = req.body;
+    const refreshToken = req.headers["x-refresh-token"];
     if (!refreshToken) {
       throw createError(400, "Refresh token is required");
     }
@@ -78,7 +78,7 @@ const updateProfile = async (req, res, next) => {
 
 const logout = async (req, res, next) => {
   try {
-    const { refreshToken } = req.body;
+    const refreshToken = req.headers["x-refresh-token"];
     await authService.logout(refreshToken);
     res.json({ message: "Logged out successfully" });
   } catch (error) {
