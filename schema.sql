@@ -75,7 +75,8 @@ CREATE TABLE addresses (
     updated_at TIMESTAMP,
     PRIMARY KEY (address_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-    FOREIGN KEY (tenant_id) REFERENCES tenants(tenant_id) ON DELETE CASCADE
+    FOREIGN KEY (tenant_id) REFERENCES tenants(tenant_id) ON DELETE CASCADE,
+    CONSTRAINT uq_user_address UNIQUE (user_id, line1, line2, city, state, postal_code, country, label)
 );
 
 -- Index to speed lookups for a user's addresses

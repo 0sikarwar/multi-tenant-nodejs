@@ -1,5 +1,6 @@
 const db = require("./db");
 const oracledb = require("oracledb");
+const roleService = require("./roleService");
 
 const get = (obj, ...keys) => {
   for (const k of keys) {
@@ -100,12 +101,41 @@ const getUsersByTenant = async (tenant_id, isAdmin) => {
 };
 
 const updateUser = async (userId, updates) => {
-  const setClauses = Object.keys(updates)
-    .map((key, i) => `${key} = :${key}`)
-    .join(", ");
-  const binds = { ...updates, userId };
+  const userUpdates = { ...updates };
+  delete userUpdates.role;
 
-  const result = await db.simpleExecute(`UPDATE users SET ${setClauses} WHERE user_id = :userId`, binds);
+  if (updates.role && Object.keys(userUpdates).length > 0) {
+    return db.withTransaction(async (connection) => {
+      const role = await roleService.getRoleByName(updates.role);
+      if (!role) {
+        throw new Error("Invalid role");
+      }
+
+      const setClauses = Object.keys(userUpdates)
+        .map((key) => `${key} = :${key}`)
+        .join(", ");
+      const binds = { ...userUpdates, userId };
+
+      await connection.execute(`UPDATE users SET ${setClauses} WHERE user_id = :userId`, binds);
+      await roleService.updateUserRole(userId, role.ROLE_ID, connection);
+
+      return getUserById(userId);
+    });
+  }
+
+  if (updates.role) {
+    const role = await roleService.getRoleByName(updates.role);
+    if (!role) {
+      throw new Error("Invalid role");
+    }
+    await roleService.updateUserRole(userId, role.ROLE_ID);
+  } else if (Object.keys(userUpdates).length > 0) {
+    const setClauses = Object.keys(userUpdates)
+      .map((key) => `${key} = :${key}`)
+      .join(", ");
+    const binds = { ...userUpdates, userId };
+    await db.simpleExecute(`UPDATE users SET ${setClauses} WHERE user_id = :userId`, binds);
+  }
 
   return getUserById(userId);
 };

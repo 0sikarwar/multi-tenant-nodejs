@@ -2,6 +2,7 @@ const oracledb = require("oracledb");
 const dbConfig = require("../config/dbconfig");
 
 const logger = require("../utils/logger");
+const { parseOracleError } = require("../utils/dbErrorHandler");
 
 async function initialize() {
   try {
@@ -50,7 +51,8 @@ async function simpleExecute(statement, binds = [], opts = {}) {
     result = await connection.execute(statement, binds, opts);
     return result;
   } catch (err) {
-    logger.error("Error executing query:", err?.message);
+    logger.error(`Error executing query: ${err.message || err.toString()}`);
+    parseOracleError(err);
     throw err;
   } finally {
     if (connection) {
@@ -63,4 +65,28 @@ async function simpleExecute(statement, binds = [], opts = {}) {
   }
 }
 
-module.exports = { initialize, close, simpleExecute };
+async function withTransaction(callback) {
+  let connection;
+  try {
+    connection = await oracledb.getConnection();
+    // In Node-oracledb's default auto-commit mode, we must explicitly begin a transaction
+    // which we can do by simply turning auto-commit off for the connection.
+    // But since we have it globally on, we will just commit/rollback manually.
+    const result = await callback(connection);
+    await connection.commit();
+    return result;
+  } catch (err) {
+    logger.error(`Transaction failed, rolling back: ${err.message || err.toString()}`);
+    if (connection) {
+      parseOracleError(err);
+      await connection.rollback();
+    }
+    throw err;
+  } finally {
+    if (connection) {
+      await connection.close();
+    }
+  }
+}
+
+module.exports = { initialize, close, simpleExecute, withTransaction };

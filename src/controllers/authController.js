@@ -5,8 +5,8 @@ const { resolveTenantId } = require("../utils/tenantUtil");
 
 const register = async (req, res, next) => {
   try {
-    const { email, password, name, role } = req.body;
-    const tenantId = await resolveTenantId(req);
+    const { email, password, name, role, tenantId: tenant_id } = req.body;
+    const tenantId = tenant_id || (await resolveTenantId(req));
 
     const existingUser = await userService.getUserByEmailAndTenant(email, tenantId);
     if (existingUser) {

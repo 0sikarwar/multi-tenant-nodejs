@@ -70,12 +70,11 @@ const login = async (email, password, tenant_id) => {
 const refreshToken = async (token) => {
   const decoded = jwt.verify(token, refreshSecret);
   const storedToken = await db.simpleExecute("SELECT * FROM refresh_tokens WHERE token = :token", { token });
-
   if (!storedToken.rows || storedToken.rows.length === 0) {
     throw createError(401, "Invalid refresh token");
   }
 
-  const user = await userService.getUserById(decoded.id);
+  const user = await userService.getUserWithAddresses(decoded.id);
   if (!user) {
     throw createError(401, "Invalid user");
   }
@@ -88,8 +87,24 @@ const refreshToken = async (token) => {
   };
 
   const accessToken = jwt.sign(payload, secret, { expiresIn: accessTokenExpiresIn });
+  const refreshToken = jwt.sign(payload, refreshSecret, { expiresIn: refreshTokenExpiresIn });
+  await db.simpleExecute(
+    `INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES (:user_id, :token, :expires_at)`,
+    {
+      user_id: user.USER_ID,
+      token: refreshToken,
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    }
+  );
 
-  return { accessToken };
+  return {
+    accessToken,
+    refreshToken,
+    user: userService.mapUserToClient(
+      user,
+      roles.map((r) => r.NAME)
+    ),
+  };
 };
 
 const forgotPassword = async (email, tenant_id) => {
@@ -123,12 +138,14 @@ const resetPassword = async (token, password) => {
   });
 };
 
-const updateProfile = async ({ userId, name, email, password, phone, address }) => {
+const updateProfile = async ({ userId, name, email, password, phone, address, role, tenantId }) => {
   const updates = {};
   const addresses = address ? [address] : [];
   if (name) updates.name = name;
   if (email) updates.email = email;
   if (phone) updates.phone = phone;
+  if (role) updates.role = role;
+  if (tenantId) updates.tenant_id = tenantId;
   if (password) updates.password = await bcrypt.hash(password, 10);
 
   const updatedUser = await userService.updateUser(userId, updates);

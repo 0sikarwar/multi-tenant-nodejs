@@ -5,6 +5,7 @@ const registerSchema = Joi.object({
   password: Joi.string().min(6).required(),
   name: Joi.string().required(),
   role: Joi.string().optional(),
+  tenantId: Joi.string().optional(),
 });
 
 const loginSchema = Joi.object({
@@ -29,10 +30,22 @@ const updateProfileSchema = Joi.object({
   address: Joi.string().allow("").optional(),
 }).min(1);
 
+const updateUserSchema = Joi.object({
+  name: Joi.string(),
+  email: Joi.string().email(),
+  password: Joi.string().min(6),
+  phone: Joi.string().allow("").min(10).optional(),
+  address: Joi.string().allow("").optional(),
+  role: Joi.string().optional(),
+  tenantId: Joi.string().optional(),
+  status: Joi.string().valid("active", "inactive").optional(),
+}).min(1);
+
 module.exports = {
   registerSchema,
   loginSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
   updateProfileSchema,
+  updateUserSchema,
 };
