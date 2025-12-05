@@ -5,7 +5,7 @@ const { rbac, checkUserOrAdmin } = require("../middlewares/rbac");
 
 const router = express.Router();
 
-router.get("/", auth, rbac(["admin"]), userController.getUsers);
+router.get("/", auth, rbac(["admin", "manager"]), userController.getUsers);
 
 const addressController = require("../controllers/addressController");
 const validate = require("../middlewares/validate");
