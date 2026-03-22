@@ -7,6 +7,7 @@ const {
   forgotPasswordSchema,
   resetPasswordSchema,
   updateProfileSchema,
+  checkAccessSchema,
 } = require("../validations/authValidation");
 const { auth } = require("../middlewares/auth");
 const { maybeAuthThenRbac } = require("../middlewares/rbac");
@@ -20,5 +21,6 @@ router.post("/forgot-password", validate(forgotPasswordSchema), authController.f
 router.post("/reset-password", validate(resetPasswordSchema), authController.resetPassword);
 router.put("/update-profile", auth, validate(updateProfileSchema), authController.updateProfile);
 router.post("/logout", auth, authController.logout);
+router.post("/check-access", auth, validate(checkAccessSchema), authController.checkAccess);
 
 module.exports = router;

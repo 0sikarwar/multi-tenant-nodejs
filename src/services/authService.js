@@ -237,6 +237,33 @@ const logout = async (refreshToken) => {
   await db.simpleExecute("DELETE FROM refresh_tokens WHERE token = :token", { token: refreshToken });
 };
 
+const checkPageAccess = async (userId, pageName) => {
+  // Simple mapping of pages to required permissions or roles
+  const pagePermissions = {
+    "admin-dashboard": ["admin"],
+    "user-profile": ["user", "admin"],
+    "tenant-settings": ["admin"],
+    "audit-logs": ["admin"],
+  };
+
+  const requiredRoles = pagePermissions[pageName];
+  if (!requiredRoles) {
+    // If page is not in the map, assume it's public or check if it exists
+    return true;
+  }
+
+  const userRoles = await roleService.getRolesByUserId(userId);
+  const userRoleNames = userRoles.map((r) => r.NAME || r.name);
+
+  const hasAccess = userRoleNames.some((role) => requiredRoles.includes(role));
+
+  // Optionally check permissions as well
+  const userPermissions = await roleService.getPermissionsByUserId(userId);
+  // If we had specific permissions like 'view_audit_logs', we would check them here
+
+  return hasAccess;
+};
+
 module.exports = {
   register,
   login,
@@ -248,4 +275,5 @@ module.exports = {
   addAddressForUser,
   updateAddressForUser,
   deleteAddressForUser,
+  checkPageAccess,
 };

@@ -41,6 +41,10 @@ const updateUserSchema = Joi.object({
   status: Joi.string().valid("active", "inactive").optional(),
 }).min(1);
 
+const checkAccessSchema = Joi.object({
+  pageName: Joi.string().required(),
+});
+
 module.exports = {
   registerSchema,
   loginSchema,
@@ -48,4 +52,5 @@ module.exports = {
   resetPasswordSchema,
   updateProfileSchema,
   updateUserSchema,
+  checkAccessSchema,
 };

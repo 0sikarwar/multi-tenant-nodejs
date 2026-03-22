@@ -87,6 +87,17 @@ const logout = async (req, res, next) => {
   }
 };
 
+const checkAccess = async (req, res, next) => {
+  try {
+    const { pageName } = req.body;
+    const userId = req.user.id;
+    const hasAccess = await authService.checkPageAccess(userId, pageName);
+    res.json({ pageName, hasAccess });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -95,4 +106,5 @@ module.exports = {
   resetPassword,
   updateProfile,
   logout,
+  checkAccess,
 };
