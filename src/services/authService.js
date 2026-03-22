@@ -30,6 +30,11 @@ const register = async (email, password, name, tenant_id, roleName, addresses = 
 };
 
 const login = async (email, password, tenant_id) => {
+  const tenant = await db.simpleExecute("SELECT status FROM tenants WHERE tenant_id = :tenant_id", { tenant_id });
+  if (!tenant.rows[0] || tenant.rows[0].STATUS === "inactive" || tenant.rows[0].status === "inactive") {
+    throw createError(403, "Tenant is deactivated. Please contact support.");
+  }
+
   const user = await userService.getUserByEmailAndTenant(email, tenant_id);
   if (!user) {
     throw createError(401, "Invalid email or password");
@@ -70,6 +75,13 @@ const login = async (email, password, tenant_id) => {
 
 const refreshToken = async (token) => {
   const decoded = jwt.verify(token, refreshSecret);
+  const tenant_id = decoded.tenant_id;
+
+  const tenant = await db.simpleExecute("SELECT status FROM tenants WHERE tenant_id = :tenant_id", { tenant_id });
+  if (!tenant.rows[0] || tenant.rows[0].STATUS === "inactive" || tenant.rows[0].status === "inactive") {
+    throw createError(403, "Tenant is deactivated. Please contact support.");
+  }
+
   const storedToken = await db.simpleExecute("SELECT * FROM refresh_tokens WHERE token = :token", { token });
   if (!storedToken.rows || storedToken.rows.length === 0) {
     throw createError(401, "Invalid refresh token");
