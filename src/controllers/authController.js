@@ -48,7 +48,8 @@ const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
     const tenant_id = await resolveTenantId(req);
-    await authService.forgotPassword(email, tenant_id);
+    const origin = req.get("origin") || `${req.protocol}://${req.get("host")}`;
+    await authService.forgotPassword(email, tenant_id, origin);
     res.json({ message: "Password reset token sent to your email" });
   } catch (error) {
     next(error);

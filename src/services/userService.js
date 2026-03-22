@@ -45,24 +45,7 @@ const createUser = async (email, password, name, tenant_id, addresses = []) => {
 
   if (Array.isArray(addresses) && addresses.length > 0) {
     for (const addr of addresses) {
-      const addrBind = {
-        user_id: userId,
-        tenant_id,
-        label: addr.label || null,
-        line1: addr.line1 || addr.line_1 || null,
-        line2: addr.line2 || addr.line_2 || null,
-        city: addr.city || null,
-        state: addr.state || null,
-        postal_code: addr.postalCode || addr.postal_code || null,
-        country: addr.country || null,
-        is_primary: addr.is_primary || addr.isPrimary || 0,
-      };
-
-      await db.simpleExecute(
-        `INSERT INTO addresses (user_id, tenant_id, label, line1, line2, city, state, postal_code, country, is_primary)
-                 VALUES (:user_id, :tenant_id, :label, :line1, :line2, :city, :state, :postal_code, :country, :is_primary)`,
-        addrBind,
-      );
+      await addAddress(userId, tenant_id, addr);
     }
   }
 

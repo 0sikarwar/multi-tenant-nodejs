@@ -7,12 +7,13 @@ if (!mailConfig.auth.user || !mailConfig.auth.pass) {
 
 const transporter = nodemailer.createTransport(mailConfig);
 
-const sendMail = async (to, subject, text) => {
+const sendMail = async (to, subject, text, html) => {
   const mailOptions = {
     from: mailConfig.auth.user,
     to,
     subject,
     text,
+    html,
   };
 
   try {

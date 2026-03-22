@@ -108,7 +108,7 @@ const refreshToken = async (token) => {
   };
 };
 
-const forgotPassword = async (email, tenant_id) => {
+const forgotPassword = async (email, tenant_id, origin) => {
   const user = await userService.getUserByEmailAndTenant(email, tenant_id);
   if (!user) {
     throw createError(404, "User not found");
@@ -123,10 +123,50 @@ const forgotPassword = async (email, tenant_id) => {
     reset_password_expires: resetPasswordExpires,
   });
 
-  const resetUrl = `http://localhost:3000/reset-password?token=${resetToken}`;
+  const resetUrl = `${origin}/reset-password?token=${resetToken}`;
   const message = `You are receiving this email because you (or someone else) have requested the reset of the password for your account.\n\nPlease click on the following link, or paste this into your browser to complete the process:\n\n${resetUrl}\n\nIf you did not request this, please ignore this email and your password will remain unchanged.\n`;
 
-  await mailService.sendMail(email, "Password reset", message);
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Password Reset</title>
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #e1e1e1; border-radius: 8px; background-color: #f9f9f9; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .content { background-color: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .button { display: inline-block; padding: 12px 24px; color: #fff !important; background-color: #007bff; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 20px; }
+        .footer { text-align: center; margin-top: 20px; font-size: 0.85em; color: #777; }
+        .link { color: #007bff; word-break: break-all; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h2>Password Reset Request</h2>
+        </div>
+        <div class="content">
+          <p>Hello,</p>
+          <p>You are receiving this email because you (or someone else) have requested the reset of the password for your account.</p>
+          <p>Please click the button below to complete the process:</p>
+          <div style="text-align: center;">
+            <a href="${resetUrl}" class="button">Reset Password</a>
+          </div>
+          <p>If you did not request this, please ignore this email and your password will remain unchanged.</p>
+          <p>This link is only valid for 10 minutes.</p>
+          <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+          <p style="font-size: 0.8em; color: #999;">If you're having trouble clicking the button, copy and paste the URL below into your web browser:</p>
+          <p class="link">${resetUrl}</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  await mailService.sendMail(email, "Password reset", message, html);
 };
 
 const resetPassword = async (token, password) => {
