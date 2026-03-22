@@ -2,6 +2,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const createError = require("http-errors");
 const userService = require("./userService");
+const mailService = require("./mailService");
 const roleService = require("./roleService");
 const db = require("./db");
 const { secret, refreshSecret, accessTokenExpiresIn, refreshTokenExpiresIn } = require("../config/jwt");
@@ -23,7 +24,7 @@ const register = async (email, password, name, tenant_id, roleName, addresses = 
 
   const clientUser = userService.mapUserToClient(
     fullUser,
-    roles.map((r) => r.NAME || r.name)
+    roles.map((r) => r.NAME || r.name),
   );
   return clientUser;
 };
@@ -55,13 +56,13 @@ const login = async (email, password, tenant_id) => {
       user_id: user.USER_ID,
       token: refreshToken,
       expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    }
+    },
   );
 
   const fullUser = await userService.getUserWithAddresses(user.USER_ID);
   const clientUser = userService.mapUserToClient(
     fullUser,
-    roles.map((r) => r.NAME || r.name)
+    roles.map((r) => r.NAME || r.name),
   );
 
   return { accessToken, refreshToken, user: clientUser };
@@ -94,7 +95,7 @@ const refreshToken = async (token) => {
       user_id: user.USER_ID,
       token: refreshToken,
       expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    }
+    },
   );
 
   return {
@@ -102,7 +103,7 @@ const refreshToken = async (token) => {
     refreshToken,
     user: userService.mapUserToClient(
       user,
-      roles.map((r) => r.NAME)
+      roles.map((r) => r.NAME),
     ),
   };
 };
@@ -117,9 +118,15 @@ const forgotPassword = async (email, tenant_id) => {
   const resetPasswordToken = crypto.createHash("sha256").update(resetToken).digest("hex");
   const resetPasswordExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-  await userService.updateUser(user.USER_ID, { resetPasswordToken, resetPasswordExpires });
+  await userService.updateUser(user.USER_ID, {
+    reset_password_token: resetPasswordToken,
+    reset_password_expires: resetPasswordExpires,
+  });
 
-  console.log(`Password reset token for ${email}: ${resetToken}`);
+  const resetUrl = `http://localhost:3000/reset-password?token=${resetToken}`;
+  const message = `You are receiving this email because you (or someone else) have requested the reset of the password for your account.\n\nPlease click on the following link, or paste this into your browser to complete the process:\n\n${resetUrl}\n\nIf you did not request this, please ignore this email and your password will remain unchanged.\n`;
+
+  await mailService.sendMail(email, "Password reset", message);
 };
 
 const resetPassword = async (token, password) => {
@@ -133,8 +140,8 @@ const resetPassword = async (token, password) => {
   const hashedPassword = await bcrypt.hash(password, 10);
   await userService.updateUser(user.USER_ID, {
     password: hashedPassword,
-    resetPasswordToken: null,
-    resetPasswordExpires: null,
+    reset_password_token: null,
+    reset_password_expires: null,
   });
 };
 
@@ -165,7 +172,7 @@ const updateProfile = async ({ userId, name, email, password, phone, address, ro
   const fullUser = await userService.getUserWithAddresses(userId);
   const clientUser = userService.mapUserToClient(
     fullUser,
-    roles.map((r) => r.NAME || r.name)
+    roles.map((r) => r.NAME || r.name),
   );
   return clientUser;
 };

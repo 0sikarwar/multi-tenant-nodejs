@@ -39,7 +39,7 @@ const createUser = async (email, password, name, tenant_id, addresses = []) => {
       name,
       tenant_id,
       user_id: { type: oracledb.NUMBER, dir: oracledb.BIND_OUT },
-    }
+    },
   );
   const userId = result.outBinds.user_id[0];
 
@@ -61,7 +61,7 @@ const createUser = async (email, password, name, tenant_id, addresses = []) => {
       await db.simpleExecute(
         `INSERT INTO addresses (user_id, tenant_id, label, line1, line2, city, state, postal_code, country, is_primary)
                  VALUES (:user_id, :tenant_id, :label, :line1, :line2, :city, :state, :postal_code, :country, :is_primary)`,
-        addrBind
+        addrBind,
       );
     }
   }
@@ -141,17 +141,44 @@ const updateUser = async (userId, updates) => {
 };
 
 const addAddress = async (userId, tenant_id, address) => {
+  const label = address.label || null;
+  const line1 = address.line1 || address.line_1 || null;
+  const line2 = address.line2 || address.line_2 || null;
+  const city = address.city || null;
+  const state = address.state || null;
+  const postal_code = address.postalCode || address.postal_code || null;
+  const country = address.country || null;
+  const is_primary = address.is_primary || address.isPrimary || 0;
+
+  const existingAddressResult = await db.simpleExecute(
+    `SELECT address_id FROM addresses 
+     WHERE user_id = :user_id 
+       AND (label = :label OR (label IS NULL AND :label IS NULL))
+       AND (line1 = :line1 OR (line1 IS NULL AND :line1 IS NULL))
+       AND (line2 = :line2 OR (line2 IS NULL AND :line2 IS NULL))
+       AND (city = :city OR (city IS NULL AND :city IS NULL))
+       AND (state = :state OR (state IS NULL AND :state IS NULL))
+       AND (postal_code = :postal_code OR (postal_code IS NULL AND :postal_code IS NULL))
+       AND (country = :country OR (country IS NULL AND :country IS NULL))`,
+    { user_id: userId, label, line1, line2, city, state, postal_code, country },
+  );
+
+  if (existingAddressResult.rows.length > 0) {
+    const existingId = existingAddressResult.rows[0].ADDRESS_ID || existingAddressResult.rows[0].address_id;
+    return existingId;
+  }
+
   const binds = {
     user_id: userId,
     tenant_id,
-    label: address.label || null,
-    line1: address.line1 || address.line_1 || null,
-    line2: address.line2 || address.line_2 || null,
-    city: address.city || null,
-    state: address.state || null,
-    postal_code: address.postalCode || address.postal_code || null,
-    country: address.country || null,
-    is_primary: address.is_primary || address.isPrimary || 0,
+    label,
+    line1,
+    line2,
+    city,
+    state,
+    postal_code,
+    country,
+    is_primary,
     address_id: { type: oracledb.NUMBER, dir: oracledb.BIND_OUT },
   };
 
@@ -159,7 +186,7 @@ const addAddress = async (userId, tenant_id, address) => {
     `INSERT INTO addresses (user_id, tenant_id, label, line1, line2, city, state, postal_code, country, is_primary)
          VALUES (:user_id, :tenant_id, :label, :line1, :line2, :city, :state, :postal_code, :country, :is_primary)
          RETURNING address_id INTO :address_id`,
-    binds
+    binds,
   );
 
   return result.outBinds.address_id[0];
@@ -168,7 +195,7 @@ const addAddress = async (userId, tenant_id, address) => {
 const getAddressesByUser = async (userId) => {
   const result = await db.simpleExecute(
     "SELECT * FROM addresses WHERE user_id = :userId ORDER BY is_primary DESC, created_at",
-    { userId }
+    { userId },
   );
   return (result.rows || []).map(mapAddressToClient);
 };
@@ -264,6 +291,11 @@ const getUserByResetToken = async (token) => {
   return result.rows[0];
 };
 
+const getTenantIdByEmail = async (email) => {
+  const result = await db.simpleExecute("SELECT tenant_id FROM users WHERE email = :email", { email });
+  return result.rows[0] ? result.rows[0].TENANT_ID : null;
+};
+
 const sanitizeUser = (user, roles) => {
   if (!user) return null;
   const copy = { ...user };
@@ -285,6 +317,7 @@ const sanitizeUser = (user, roles) => {
 module.exports = {
   createUser,
   getUserByEmailAndTenant,
+  getTenantIdByEmail,
   getUserById,
   getUsersByTenant,
   updateUser,

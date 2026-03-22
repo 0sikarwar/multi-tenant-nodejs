@@ -1,5 +1,6 @@
 const createError = require("http-errors");
 const tenantService = require("../services/tenantService");
+const userService = require("../services/userService");
 
 const resolveTenantId = async (req) => {
   const bodyTenant = req && req.body && (req.body.tenant_id || req.body.tenantId || req.body.TENANT_ID);
@@ -12,6 +13,8 @@ const resolveTenantId = async (req) => {
   const tenantName = (domain || "default").split(":")[0];
 
   let tenant = await tenantService.getTenantByName(tenantName);
+  let userTenantByEMail = await userService.getTenantIdByEmail(req.body?.email);
+  if (userTenantByEMail === -1) return userTenantByEMail;
   if (!tenant) {
     tenant = await tenantService.createTenant(tenantName);
   }
